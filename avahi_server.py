@@ -1,6 +1,7 @@
 # Dependency - the Ubuntu python-avahi package
 import avahi
 import dbus
+from dbus.mainloop.glib import DBusGMainLoop
 
 __all__ = ["ZeroconfService"]
 
@@ -20,7 +21,8 @@ class ZeroconfService:
         self.text = text
 
     def publish(self):
-        bus = dbus.SystemBus()
+        loop = DBusGMainLoop()
+        bus = dbus.SystemBus(mainloop=loop)
         server = dbus.Interface(
                          bus.get_object(
                                  avahi.DBUS_NAME,

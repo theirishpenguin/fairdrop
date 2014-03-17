@@ -2,17 +2,20 @@
 import dbus, gobject, avahi
 from dbus import DBusException
 from dbus.mainloop.glib import DBusGMainLoop
+import re
 
 
 class ZeroconfClient:
 
-    def __init__(self):
+    # HACK - ZeroconfClient should not have knowledge of app
+    def __init__(self, app = None):
+        self.app = app
         self.TYPE = "_http._tcp"
+        self.available_clients = {}
 
-    def list_servers(self):
-        #loop = DBusGMainLoop()
-        #bus = dbus.SystemBus(mainloop=loop)
-        bus = dbus.SystemBus()
+    def listen_for_servers(self):
+        loop = DBusGMainLoop()
+        bus = dbus.SystemBus(mainloop=loop)
         self.server = dbus.Interface(bus.get_object(avahi.DBUS_NAME, '/'),
                 'org.freedesktop.Avahi.Server')
         sbrowser = dbus.Interface(
@@ -29,13 +32,37 @@ class ZeroconfClient:
                 avahi.DBUS_INTERFACE_SERVICE_BROWSER
                 )
         sbrowser.connect_to_signal("ItemNew", self.myhandler)
-        gobject.MainLoop().run()
+        # HACK - Delete soon
+        #gobject.MainLoop().run() # Doesn't look like we need this - perhaps implicit?
 
+    # HACK - Needs a real cleanup
     def service_resolved(self, *args):
+        service_name = args[2]
+        hostname = args[5]
+        address = args[7]
+        port = args[8]
+        client_identifier = str(hostname) + '~' +  str(address) + '~' + str(port)
+
+        if service_name != 'FairdropService':
+            return
+
+        is_ip_address = re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", address)
+
+        if not is_ip_address:
+            return
+
+        self.available_clients[client_identifier] = {
+           "hostname": hostname,
+           "address": address,
+           "port": port
+        }
+
+        self.app.destinationcomboboxtext.append_text(client_identifier)
         print 'service resolved'
-        print 'name:', args[2]
-        print 'address:', args[7]
-        print 'port:', args[8]
+        print 'hostname:', hostname
+        print 'service_name:', service_name
+        print 'address:', address
+        print 'port:', port
 
     def print_error(self, *args):
         print 'error_handler'
