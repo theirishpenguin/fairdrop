@@ -2,12 +2,14 @@
 
 from gi.repository import Gtk
 import os
+from avahi_server import ZeroconfService
 
 class FairdropApp:
     def __init__(self):
         self.configure()
         self.get_widget_references()
         self.wireup_signals()
+        self.start_avahi_server()
         self.window.show_all()
 
     def configure(self):
@@ -24,7 +26,7 @@ class FairdropApp:
         self.sendfilebutton = builder.get_object("sendfilebutton")
 
     def wireup_signals(self):
-        self.window.connect("delete-event", Gtk.main_quit)
+        self.window.connect("delete-event", self.close_app)
         self.filechooserbutton.connect("file-set", self.on_source_file_set)
         self.sendfilebutton.connect("clicked", self.on_send_file_button_clicked)
 
@@ -41,6 +43,10 @@ class FairdropApp:
     def on_source_file_set(self, button):
         self.source_file = self.filechooserbutton.get_filename()
 
+    def close_app(self, event, user_data):
+        self.service.unpublish()
+        Gtk.main_quit()
+
     # Helpers
 
     def build_file_sent_info_dialog(self):
@@ -55,6 +61,10 @@ class FairdropApp:
         print "Running command: " + command
         os.system(command)
         #nmap -p7538 192.168.1.*
+
+    def start_avahi_server(self):
+        self.service = ZeroconfService(name="FairdropService", port=self.receiver_port)
+        self.service.publish()
 
 # Main
 
