@@ -3,6 +3,7 @@
 from gi.repository import Gtk
 import os
 from avahi_server import ZeroconfService
+from avahi_client import ZeroconfClient
 
 class FairdropApp:
     def __init__(self):
@@ -10,6 +11,7 @@ class FairdropApp:
         self.get_widget_references()
         self.wireup_signals()
         self.start_avahi_server()
+        self.start_avahi_client()
         self.window.show_all()
 
     def configure(self):
@@ -65,6 +67,10 @@ class FairdropApp:
     def start_avahi_server(self):
         self.service = ZeroconfService(name="FairdropService", port=self.receiver_port)
         self.service.publish()
+
+    def start_avahi_client(self):
+        self.client = ZeroconfClient()
+        self.client.list_servers()
 
 # Main
 
